@@ -1,0 +1,71 @@
+-- TODO: should use k-v database to store this kind data
+CREATE TYPE gender AS ENUM ('m', 'f');
+CREATE TYPE member_kind AS ENUM ('common', 'golden', 'vip');
+CREATE TYPE privacy_level AS ENUM ('all', 'info', 'private');
+CREATE TYPE post_status AS ENUM ('normal', 'forbid');
+CREATE TYPE block_kind AS ENUM ('all', 'dont_see', 'no_see_me');
+
+-- people is fushu for people...
+CREATE TABLE IF NOT EXISTS people (  
+   id           SERIAL NOT NULL,
+   user_name    varchar(256) NOT NULL,
+   nick_name    varchar(256),
+   introduce    text,
+   sex          gender,
+   email        varchar(256) NOT NULL,
+   coin         INT DEFAULT 0,
+   type         member_kind DEFAULT 'common',
+   privacy      privacy_level DEFAULT 'all',
+   views        smallint DEFAULT 0,
+   created_at   date,
+   updated_at   date,
+   deleted_at   date,
+   PRIMARY KEY( id )
+);
+
+
+CREATE TABLE IF NOT EXISTS posts (  
+    id          SERIAL NOT NULL,
+    title       text NOT NULL,
+    content     text,
+    auth        INT REFERENCES people(id),
+    status      post_status DEFAULT 'normal',
+    views       smallint DEFAULT 0,
+    created_at   date,
+    updated_at   date,
+    deleted_at   date,
+    PRIMARY KEY( id )
+);
+
+CREATE TABLE IF NOT EXISTS blacklists (  
+    id          SERIAL NOT NULL,
+    uid         INT REFERENCES people(id),
+    strategy    block_kind DEFAULT 'dont_see',
+    created_at   date,
+    updated_at   date,
+    deleted_at   date,
+    PRIMARY KEY( id )
+);
+
+CREATE TABLE IF NOT EXISTS follows (  
+    id          SERIAL NOT NULL,
+    follower    INT NOT NULL REFERENCES people(id),
+    followee    INT NOT NULL REFERENCES people(id),
+    created_at   date,
+    updated_at   date,
+    deleted_at   date,
+    PRIMARY KEY( id )
+);
+
+CREATE TABLE IF NOT EXISTS favorites (  
+    id          SERIAL NOT NULL,
+    uid         INT REFERENCES people(id),
+    pid         INT NOT NULL REFERENCES posts(id),
+    created_at   date,
+    updated_at   date,
+    deleted_at   date,
+    PRIMARY KEY( id )
+);
+    
+-- create test data
+INSERT INTO people (user_name, nick_name, introduce, sex, email, coin, type, privacy, views) values ('admin', 'mark_yu', 'this is a sample introduction', 'm', 'test@g.cn', 9999,'vip', 'all', 1111);

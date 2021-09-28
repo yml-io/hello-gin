@@ -1,0 +1,7 @@
+ARG PG_VERSION=9.6
+
+FROM postgres:${PG_VERSION}
+
+# 不知道为啥这里只要 initdb 带上后罪名就找不到, 可能和 docker-compose 或者 vscode 有关
+COPY initdb /docker-entrypoint-initdb.d
+RUN mv /docker-entrypoint-initdb.d/initdb /docker-entrypoint-initdb.d/initdb.sql

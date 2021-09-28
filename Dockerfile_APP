@@ -1,0 +1,8 @@
+ARG GO_VERSION=1.16.6
+
+FROM golang:${GO_VERSION}
+
+COPY main /main
+WORKDIR /
+EXPOSE 8080
+CMD ["/main"]

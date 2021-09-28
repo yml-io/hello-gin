@@ -1,0 +1,47 @@
+version: '3'
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile_APP
+    ports:
+      - "8808:8080"
+    volumes:
+      - .:/code
+      - logvolume01:/var/log
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hello-net
+  redis:
+    image: redis
+    networks:
+      - hello-net
+  postgres:
+    build: 
+      context: .
+      dockerfile: Dockerfile_PG
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: hello
+      POSTGRES_DB: hello
+      POSTGRES_PASSWORD: hello
+    networks:
+      - hello-net
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8010:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: vo8.6
+    networks:
+      - hello-net
+volumes:
+  logvolume01: {}
+networks:
+  hello-net:
+    # Use a custom driver
+    driver: bridge

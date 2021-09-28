@@ -1,0 +1,250 @@
+// 任何声明 struct 结构中使用反引号的注解，可以修改序列化后的值，例如  `json:"user"`
+// printf 中 %v 可以打印出 map 结构
+// 路径中可以有 ：， *
+// context 里面有 ： param fullpath DefaultQuery query  postform defaultpostform  MustGet
+// querymap 和 postformmap 可以获取通过 query 参数传递过来的 map， 以及 form 传递过来的 map
+// gin.Context 的 String JSON XML YAML ProtoBuf AsciiJSON PureJSON 都是可以返回一个 statuscode 和 一个 struct 的对象
+// 另外的返回还有： SecureJSON
+// JSONP 会将返回传到 url 中的回调函数里面
+// 重定向： Redirect 指定一个外部或者内部的地址
+// 		或者使用一个 router 重定向：   一个存在的 router 定义的路径
+// c.Request.URL.Path = "/test2"
+// r.HandleContext(c)
+
+// cookie 的处理
+// cookie, err := c.Cookie("gin_cookie")
+// if err != nil {
+// 	cookie = "NotSet"
+// 	c.SetCookie("gin_cookie", "test", 3600, "/", "localhost", false, true)
+// }
+
+
+// 额外的中间件，给特定路由 r.GET("/benchmark", MyBenchLogger(), benchEndpoint)
+// route.Any("/testing", startPage)   c.ShouldBindQuery(&person) == nil
+
+
+
+// 自定义的异常处理中间件
+// Recovery middleware recovers from any panics and writes a 500 if there was one.
+// r.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+// 	if err, ok := recovered.(string); ok {
+// 		c.String(http.StatusInternalServerError, fmt.Sprintf("error: %s", err))
+// 	}
+// 	c.AbortWithStatus(http.StatusInternalServerError)
+// }))
+
+
+
+// 自定义日志格式
+// gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+// 	log.Printf("endpoint %v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
+// }
+
+// 日志写文件
+// Disable Console Color, you don't need console color when writing the logs to file.
+// gin.DisableConsoleColor()
+// // Logging to a file.
+// f, _ := os.Create("gin.log")
+// gin.DefaultWriter = io.MultiWriter(f)
+// // Use the following code if you need to write the logs to file and console at the same time.
+// // gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+
+// 自定义日志格式
+// router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+// 	// your custom format
+// 	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+// 			param.ClientIP,
+// 			param.TimeStamp.Format(time.RFC1123),
+// 			param.Method,
+// 			param.Path,
+// 			param.Request.Proto,
+// 			param.StatusCode,
+// 			param.Latency,
+// 			param.Request.UserAgent(),
+// 			param.ErrorMessage,
+// 	)
+// }))
+
+// 可以将request 的数据绑定到特定的数据类型
+// ShouldBind 属于消耗性的操作，当一次不成功之后，第二次再使用 context 中的数据，会发生错误 （需要验证）
+// 而 ShouldBindBodyWith 不会。因为他先进行复制，所以有性能影响。ShouldBindBodyWith 在绑定之前将 body 存储到上下文中。这对性能有轻微影响，因此如果您足以立即调用绑定，则不应使用此方法。
+// 仅某些格式需要此功能——JSON、XML、MsgPack、ProtoBuf
+// 对于其他格式，Query、Form、FormPost、FormMultipart 可以由 c.ShouldBind() 多次调用，而不会对性能造成任何损害
+// 可以使用的 shuld 类型的方法有
+// ShouldBind, ShouldBindJSON, ShouldBindXML, ShouldBindQuery, ShouldBindYAML, ShouldBindHeader. ShouldBindUri
+// gin.Context 绑定指定的数据，就可以调用对应的函数。
+// shouldBind 可以绑定 form 表单数据，例如 c.ShouldBind(&fakeForm{ Colors []string `form:"colors[]"` })
+// type Login struct {
+// 	User     string `form:"user" json:"user" xml:"user"  binding:"required"`
+// 	Password string `form:"password" json:"password" xml:"password" binding:"-"`
+//  Birthday   time.Time `form:"birthday" time_format:"2006-01-02" time_utc:"1"`
+// }
+// var json Login
+// if err := c.ShouldBindJSON(&json); err != nil {
+// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 	return
+// }
+// If `GET`, only `Form` binding engine (`query`) used.
+// If `POST`, first checks the `content-type` for `JSON` or `XML`, then uses `Form` (`form-data`).
+// See more at https://github.com/gin-gonic/gin/blob/master/binding/binding.go#L48
+// if c.ShouldBind(&person) == nil
+
+// 也可有自定义的校验方法， ----   Custom Validators
+// 绑定multipart 的表单数据  ----  Multipart/Urlencoded binding
+
+func renderStaticHTML(router *gin.Engine) {
+	// router.LoadHTMLGlob("src/static/*")
+	// router.LoadHTMLGlob("templates/**/*")
+	router.LoadHTMLFiles("src/static/index.tmpl", "src/static/index.html")
+	router.GET("/page/index", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
+	router.GET("/page/index2", func(c *gin.Context) {
+		t, items := c.Query("title"), c.QueryMap("item")
+
+		fmt.Printf("%v", items)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"title": t,
+			"a":     items["a"],
+			"b":     items["b"],
+			"c":     items["c"],
+		})
+	})
+
+}
+
+func main() {
+	// logger and recovery (crash-free) middleware instead of      gin.New()
+	r := gin.Default()
+
+	// router.MaxMultipartMemory = 8 << 20  // 8 MiB
+	r.GET("/ping", func(c *gin.Context) {
+		ch := make(chan int)
+		go func() {
+			time.Sleep(time.Second)
+			c.JSON(200, gin.H{
+				"value": "pong",
+			})
+			ch <- 1
+		}()
+		<-ch
+	})
+
+	// served data from reader
+	// r.GET("/someDataFromReader", func(c *gin.Context) {
+	// 	response, err := http.Get("https://raw.githubusercontent.com/gin-gonic/logo/master/color.png")
+	// 	if err != nil || response.StatusCode != http.StatusOK {
+	// 		c.Status(http.StatusServiceUnavailable)
+	// 		return
+	// 	}
+
+	// 	reader := response.Body
+	// 	defer reader.Close()
+	// 	contentLength := response.ContentLength
+	// 	contentType := response.Header.Get("Content-Type")
+
+	// 	extraHeaders := map[string]string{
+	// 		"Content-Disposition": `attachment; filename="gopher.png"`,
+	// 	}
+
+	// 	c.DataFromReader(http.StatusOK, contentLength, contentType, reader, extraHeaders)
+	// })
+	renderStaticHTML(r)
+
+	// 还有其他更详细的自定义模版的例子 ---- Custom Template renderer
+
+	r.Run()
+	// http.ListenAndServe(":8080", router)
+	// 或
+	// s := &http.Server{
+	// 	Addr:           ":8080",
+	// 	Handler:        router,
+	// 	ReadTimeout:    10 * time.Second,
+	// 	WriteTimeout:   10 * time.Second,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
+	// s.ListenAndServe()
+}
+
+// 定义中间件
+func Logger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		t := time.Now()
+
+		// Set example variable
+		c.Set("example", "12345")
+
+		// before request
+
+		c.Next()
+
+		// after request
+		latency := time.Since(t)
+		log.Print(latency)
+
+		// access the status we are sending
+		status := c.Writer.Status()
+		log.Println(status)
+	}
+}
+
+// Auth 中间件  ----  Using BasicAuth() middleware
+// 如果在中间件里面启动异步操作，需要用 cCp := c.Copy() 复制context变量逃逸到堆上，并且不能修改
+
+// 优雅退出 server
+// func main() {
+// 	router := gin.Default()
+// 	router.GET("/", func(c *gin.Context) {
+// 		time.Sleep(5 * time.Second)
+// 		c.String(http.StatusOK, "Welcome Gin Server")
+// 	})
+
+// 	srv := &http.Server{
+// 		Addr:    ":8080",
+// 		Handler: router,
+// 	}
+
+// 	// Initializing the server in a goroutine so that
+// 	// it won't block the graceful shutdown handling below
+// 	go func() {
+// 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+// 			log.Printf("listen: %s\n", err)
+// 		}
+// 	}()
+
+// 	// Wait for interrupt signal to gracefully shutdown the server with
+// 	// a timeout of 5 seconds.
+// 	quit := make(chan os.Signal)
+// 	// kill (no param) default send syscall.SIGTERM
+// 	// kill -2 is syscall.SIGINT
+// 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+// 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+// 	<-quit
+// 	log.Println("Shutting down server...")
+
+// 	// The context is used to inform the server it has 5 seconds to finish
+// 	// the request it is currently handling
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+
+// 	if err := srv.Shutdown(ctx); err != nil {
+// 		log.Fatal("Server forced to shutdown:", err)
+// 	}
+
+// 	log.Println("Server exiting")
+// }
+
+// 测试 gin
+// func TestPingRoute(t *testing.T) {
+// 	router := setupRouter()
+
+// 	w := httptest.NewRecorder()
+// 	req, _ := http.NewRequest("GET", "/ping", nil)
+// 	router.ServeHTTP(w, req)
+
+// 	assert.Equal(t, 200, w.Code)
+// 	assert.Equal(t, "pong", w.Body.String())
+// }
+
+// ---- Bind form-data request with custom struct and custom tag
+// ---- http2 server push
