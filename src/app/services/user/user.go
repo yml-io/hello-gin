@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"hello-gin/src/types"
 	"log"
 	"net/http"
@@ -13,6 +14,16 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// TODO it can reuse the struct in types/person ?
+type UserForm struct {
+	UserName  string `form:"user_name" json:"user_name" xml:"user_name"`
+	NickName  string `form:"nick_name" json:"nick_name" xml:"nick_name"`
+	Introduce string `form:"introduce" json:"introduce" xml:"introduce"`
+	Sex       string `form:"sex" json:"sex" xml:"sex"`
+	Email     string `form:"email" json:"email" xml:"email"`
+	Privacy   string `form:"privacy" json:"privacy" xml:"privacy"`
+}
 
 // TODO use connection pool  & code refine
 func getConn() *gorm.DB {
@@ -38,8 +49,8 @@ TODO according to blacklist and privacy level
 */
 func GetUserInfo() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		uid := c.GetString("uid")
-		queryUID := c.DefaultQuery("uid", uid)
+		uid := c.GetInt("uid")
+		queryUID := c.DefaultQuery("uid", strconv.Itoa(uid))
 
 		conn := getConn()
 
@@ -57,9 +68,9 @@ func GetUserInfo() gin.HandlerFunc {
 }
 
 func getUserUploadPath(c *gin.Context) (string, error) {
-	uid := c.GetString("uid")
+	uid := c.GetInt("uid")
 	fileName := strconv.Itoa(int(time.Now().Unix()))
-	uploadDir := filepath.Join("public", uid)
+	uploadDir := filepath.Join("public", strconv.Itoa(uid))
 
 	_, err := os.Stat(uploadDir)
 	if os.IsNotExist(err) {
@@ -105,32 +116,24 @@ func UploadAvatar() gin.HandlerFunc {
 
 func UpdateUserInfo() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		uid := c.GetString("uid")
-		formMap := c.PostFormMap("user")
+		uid := c.GetInt("uid")
+
+		var userForm UserForm
+		if err := c.ShouldBind(&userForm); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  1,
+				"error": "Invalid Update Params",
+			})
+			return
+		}
+
+		fmt.Printf("%v", userForm)
+		// formMap := c.PostFormMap("user")
 
 		conn := getConn()
-		var updatePerson types.Person
-		// assemble the update object
-		if v, ok := formMap["user_name"]; ok {
-			updatePerson.UserName = v
-		}
-		if v, ok := formMap["nick_name"]; ok {
-			updatePerson.NickName = v
-		}
-		if v, ok := formMap["introduce"]; ok {
-			updatePerson.Introduce = v
-		}
-		if v, ok := formMap["sex"]; ok {
-			updatePerson.Sex = v
-		}
-		if v, ok := formMap["email"]; ok {
-			updatePerson.Email = v
-		}
-		if v, ok := formMap["privacy"]; ok {
-			updatePerson.Privacy = v
-		}
 
-		if result := conn.Model(&types.Person{}).Where("user_name = ?", uid).Updates(updatePerson); result.Error != nil {
+		// 只更新非 0 值， 也可以使用 select 更新固定的列
+		if result := conn.Model(&types.Person{}).Where("user_name = ?", uid).Updates(userForm); result.Error != nil {
 			log.Printf("%v", result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":  1,
@@ -147,40 +150,56 @@ func UpdateUserInfo() gin.HandlerFunc {
 
 func CreateUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		formMap := c.PostFormMap("user")
+		var person types.Person
+		if err := c.ShouldBind(&person); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  1,
+				"error": "Invalid Update Params",
+			})
+			return
+		}
+
+		fmt.Printf("%v", person)
+		// formMap := c.PostFormMap("user")
 
 		conn := getConn()
-		var insertPerson types.Person
-		// assemble the update object
-		if v, ok := formMap["user_name"]; ok {
-			insertPerson.UserName = v
+		// select 可以保证只更新这些字段
+		// 还有一些tag可以加在 struct 上面做类型校验
+		if result := conn.Select("UserName", "NickName", "Introduce", "Sex", "Email", "Privacy").Create(&person); result.Error != nil {
+			log.Printf("%v", result.Error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  1,
+				"error": "Create Error",
+			})
+			return
 		}
-		if v, ok := formMap["nick_name"]; ok {
-			insertPerson.NickName = v
-		}
-		if v, ok := formMap["introduce"]; ok {
-			insertPerson.Introduce = v
-		}
-		if v, ok := formMap["sex"]; ok {
-			insertPerson.Sex = v
-		}
-		if v, ok := formMap["email"]; ok {
-			insertPerson.Email = v
-		}
-		if v, ok := formMap["privacy"]; ok {
-			insertPerson.Privacy = v
-		}
-		conn.Select("UserName", "NickName", "Introduce", "Sex", "Email", "Privacy").Create(&insertPerson)
+		c.JSON(http.StatusOK, gin.H{
+			"code":  0,
+			"error": "Create Successfully",
+		})
+
 	}
 }
 
 func DeleteUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		uid := c.PostForm("uid")
+		deleteUid := c.Param("uid")
 
 		conn := getConn()
-		var deletePerson types.Person
-		conn.Where("user_name = ?", uid).First(&deletePerson)
-		conn.Delete(&deletePerson)
+		if result := conn.Delete(&types.Person{}, "user_name = ?", deleteUid); result.Error != nil {
+			// log.Printf("%v", result.Error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  1,
+				"error": "Delete Error",
+			})
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"code":   0,
+				"data":   "Delete Successfully",
+				"number": result.RowsAffected,
+			})
+		}
+
 	}
 }

@@ -48,7 +48,7 @@ func AuthRequired(r *gin.Engine) gin.HandlerFunc {
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			// TODO uid 应该是一个临时值，而不应该对应数据库的值
-			c.Set("uid", claims["uid"].(string))
+			c.Set("uid", int(claims["uid"].(float64)))
 			return
 		}
 

@@ -3,6 +3,9 @@ package app
 import (
 	"hello-gin/src/middleware/auth"
 
+	favoriteR "hello-gin/src/app/services/favorite"
+	followR "hello-gin/src/app/services/follow"
+	postR "hello-gin/src/app/services/post"
 	userR "hello-gin/src/app/services/user"
 
 	"github.com/gin-gonic/gin"
@@ -23,28 +26,30 @@ func setupPublicRouter(r *gin.Engine) *gin.Engine {
 		userRouter.GET("/view", userR.GetUserInfo())
 		userRouter.POST("/update", userR.UpdateUserInfo())
 		userRouter.POST("/upload_avatar", userR.UploadAvatar())
+		// need check admin
 		userRouter.PUT("/create", userR.CreateUser())
+		userRouter.DELETE("/delete/:uid", userR.DeleteUser())
 	}
-	// postsRouter := unAuthorized.Group("/posts")
-	// {
-	// 	postsRouter.GET("/view/:post_id", GetPostInfo())
-	// 	postsRouter.GET("/list/:user_id", GetPostList())
-	// 	postsRouter.PUT("/create", CreatePost())
-	// 	postsRouter.DELETE("/:post_id", DeletePost())
-	// 	postsRouter.POST("/update/:post_id", UpdatePostInfo())
-	// }
-	// followRouter := unAuthorized.Group("/follow")
-	// {
-	// 	followRouter.GET("/list", GetFollowList())
-	// 	followRouter.PUT("/create/:user_id", CreateFollow())
-	// 	followRouter.DELETE("/:user_id", DeleteFollow())
-	// }
-	// favoriteRouter := unAuthorized.Group("/favorite")
-	// {
-	// 	favoriteRouter.GET("/list", GetFavoriteList())
-	// 	favoriteRouter.PUT("/create/:user_id", CreateFavorite())
-	// 	favoriteRouter.DELETE("/:user_id", DeleteFavorite())
-	// }
+	postsRouter := unAuthorized.Group("/posts")
+	{
+		postsRouter.GET("/view/:pid", postR.GetPostInfo())
+		postsRouter.GET("/list", postR.GetPostList())
+		postsRouter.PUT("/create", postR.CreatePost())
+		postsRouter.DELETE("/delete/:pid", postR.DeletePost())
+		postsRouter.POST("/update/:pid", postR.UpdatePostInfo())
+	}
+	followRouter := unAuthorized.Group("/follow")
+	{
+		followRouter.GET("/list", followR.GetFollowList())
+		followRouter.PUT("/create", followR.CreateFollow())
+		followRouter.DELETE("/delete/:uid", followR.DeleteFollow())
+	}
+	favoriteRouter := unAuthorized.Group("/favorite")
+	{
+		favoriteRouter.GET("/list", favoriteR.GetFavoriteList())
+		favoriteRouter.PUT("/create", favoriteR.CreateFavorite())
+		favoriteRouter.DELETE("/delete/:pid", favoriteR.DeleteFavorite())
+	}
 
 	// // get posts from follow user which latest posts
 	// unAuthorized.GET("/recommend_post", GetRecommendPost())
