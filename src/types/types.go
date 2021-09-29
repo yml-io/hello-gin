@@ -11,19 +11,19 @@ type Person struct {
 	Introduce string `form:"introduce" json:"introduce" xml:"introduce"`
 	Sex       string `form:"sex" json:"sex" xml:"sex"`
 	Email     string `form:"email" json:"email" xml:"email"`
-	Coin      uint64 `form:"coin" json:"coin" xml:"coin"`
+	Coin      uint64 `form:"coin" json:"coin" xml:"coin" binding:"-"`
 	Type      string `form:"type" json:"type" xml:"type"`
 	Privacy   string `form:"privacy" json:"privacy" xml:"privacy"`
-	Views     uint64 `form:"views" json:"views" xml:"views"`
+	Views     uint64 `form:"views" json:"views" xml:"views" binding:"-"`
 }
 
 type Post struct {
 	gorm.Model
 	Title   string `form:"title" json:"title" xml:"title"`
 	Content string `form:"content" json:"content" xml:"content"`
-	Auth    int    `form:"auth" json:"auth" xml:"auth"`
+	Auth    int    `form:"auth" json:"auth" xml:"auth" binding:"-"`
 	Status  string `form:"status" json:"status" xml:"status"`
-	Views   uint64 `form:"views" json:"views" xml:"views"`
+	Views   uint64 `form:"views" json:"views" xml:"views" binding:"-"`
 }
 
 type BlackList struct {
